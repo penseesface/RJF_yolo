@@ -1,0 +1,11 @@
+#Folders
+
+weights/
+data/
+__pycache__/
+output/
+
+#Files
+
+*.pt
+*.weights
