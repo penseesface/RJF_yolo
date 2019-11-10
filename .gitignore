@@ -1,5 +1,7 @@
 #Folders
 
+runs/
+exp/
 weights/
 data/
 __pycache__/

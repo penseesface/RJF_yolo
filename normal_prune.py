@@ -12,13 +12,13 @@ import os
 
 
 class opt():
-    model_def = "cfg/yolov3-hand.cfg"
-    data_config = "cfg/oxfordhand.data"
+    model_def = "cfg/yolov3-custom.cfg"
+    data_config = "data/custom.data"
     model = 'weights/last.pt'
 
 #指定GPU
 #torch.cuda.set_device(2)
-percent = 0.5
+percent = 0.2
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = Darknet(opt.model_def).to(device)
@@ -229,7 +229,7 @@ pruned_cfg_file = write_cfg(pruned_cfg_name, [model.hyperparams.copy()] + compac
 print(f'Config file has been saved: {pruned_cfg_file}')
 
 #compact_model_name = opt.model.replace('/', f'/prune_{percent}_')
-compact_model_name = 'weights/yolov3_hand_normal_pruning_'+str(percent)+'percent.weights'
+compact_model_name = 'weights/yolov3_normal_pruning_'+str(percent)+'percent.weights'
 
 save_weights(compact_model, path=compact_model_name)
 print(f'Compact model has been saved: {compact_model_name}')

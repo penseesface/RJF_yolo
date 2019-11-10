@@ -508,7 +508,11 @@ def load_image(self, index):
     img = self.imgs[index]
     if img is None:
         img_path = self.img_files[index]
-        img = cv2.imread(img_path)  # BGR
+        if os.path.exists(img_path):
+            img = cv2.imread(img_path)  # BGR
+        else:            
+            path = img_path.split('.')[0]
+            img = cv2.imread(path + ".jpg")
         assert img is not None, 'Image Not Found ' + img_path
         r = self.img_size / max(img.shape)  # size ratio
         if self.augment and r < 1.0:  # if training (NOT testing), downsize to inference shape
