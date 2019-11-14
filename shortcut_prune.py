@@ -9,42 +9,46 @@ import time
 from utils.utils import *
 from utils.prune_utils import *
 import os
+import argparse
 
 #short-cut剪枝
 
-class opt():
-    model_def = "cfg/yolov3-hand.cfg"
-    data_config = "data/oxfordhand.data"
-    model = 'weights/last.pt'
+#Parse Arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--cfg', type=str, default='cfg/yolov3-custom.cfg', help='cfg file path')
+parser.add_argument('--data', type=str, default='data/custom.data', help='*.data file path')
+parser.add_argument('--weights', type=str, default='', help='weights file for pruning')
+parser.add_argument('--output', type=str, default='', help='output model file')
 
+opt = parser.parse_args()
 
-#指定GPU
-#torch.cuda.set_device(2)
+print(opt)
 
 if __name__ == '__main__':
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = Darknet(opt.model_def).to(device)
+    model = Darknet(opt.cfg).to(device)
 
-    if opt.model:
-        if opt.model.endswith(".pt"):
-            model.load_state_dict(torch.load(opt.model, map_location=device)['model'])
+    if opt.weights:
+        if opt.weights.endswith(".pt"):
+            model.load_state_dict(torch.load(opt.weights, map_location=device)['model'])
         else:
-            _ = load_darknet_weights(model, opt.model)
+            _ = load_darknet_weights(model, opt.weights)
 
 
 
-    data_config = parse_data_cfg(opt.data_config)
+    data = parse_data_cfg(opt.data)
 
-    valid_path = data_config["valid"]
-    class_names = load_classes(data_config["names"])
+    valid_path = data["valid"]
+    class_names = load_classes(data["names"])
 
-    eval_model = lambda model:test(model=model,cfg=opt.model_def, data=opt.data_config)
+    eval_model = lambda model:test(model=model,cfg=opt.cfg, data=opt.data)
     obtain_num_parameters = lambda model:sum([param.nelement() for param in model.parameters()])
 
     #这个不应该注释掉，等会要恢复
     with torch.no_grad():
         origin_model_metric = eval_model(model)
+
     origin_nparameters = obtain_num_parameters(model)
 
     '''
@@ -87,10 +91,6 @@ if __name__ == '__main__':
 
     print(f'Threshold should be less than {highest_thre:.4f}.')
     print(f'The corresponding prune ratio is {percent_limit:.3f}.')
-
-
-
-
 
     # 该函数有很重要的意义：
     # ①先用深拷贝将原始模型拷贝下来，得到model_copy
@@ -242,9 +242,9 @@ if __name__ == '__main__':
 
         pruned_model = deepcopy(model)
         activations = []
-        for i, model_def in enumerate(model.module_defs):
+        for i, cfg in enumerate(model.module_defs):
 
-            if model_def['type'] == 'convolutional':
+            if cfg['type'] == 'convolutional':
                 activation = None
                 if i in prune_idx:
                     mask = torch.from_numpy(CBLidx2mask[i]).cuda()
@@ -255,9 +255,9 @@ if __name__ == '__main__':
                     bn_module.bias.data.mul_(mask)
                 activations.append(activation)
 
-            if model_def['type'] == 'shortcut':
+            if cfg['type'] == 'shortcut':
                 actv1 = activations[i - 1]
-                from_layer = int(model_def['from'])
+                from_layer = int(cfg['from'])
                 actv2 = activations[i + from_layer]
                 activation = actv1 + actv2
                 update_activation(i, pruned_model, activation, CBL_idx)
@@ -265,8 +265,8 @@ if __name__ == '__main__':
                 
 
 
-            if model_def['type'] == 'route':
-                from_layers = [int(s) for s in model_def['layers'].split(',')]
+            if cfg['type'] == 'route':
+                from_layers = [int(s) for s in cfg['layers'].split(',')]
                 if len(from_layers) == 1:
                     activation = activations[i + from_layers[0]]
                     update_activation(i, pruned_model, activation, CBL_idx)
@@ -277,11 +277,11 @@ if __name__ == '__main__':
                     update_activation(i, pruned_model, activation, CBL_idx)
                 activations.append(activation)
 
-            if model_def['type'] == 'upsample':
+            if cfg['type'] == 'upsample':
                 activation = torch.zeros(int(model.module_defs[i - 1]['filters'])).cuda()
                 activations.append(activation)
 
-            if model_def['type'] == 'yolo':
+            if cfg['type'] == 'yolo':
                 activations.append(None)
            
         return pruned_model
@@ -346,7 +346,7 @@ if __name__ == '__main__':
 
 
     # 生成剪枝后的cfg文件并保存模型
-    pruned_cfg_name = opt.model_def.replace('/', f'/prune_{percent}_')
+    pruned_cfg_name = opt.cfg.replace('/', f'/prune_{percent}_')
 
     #由于原始的compact_module_defs将anchor从字符串变为了数组，因此这里将anchors重新变为字符串
 

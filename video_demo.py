@@ -27,6 +27,8 @@ def detect(save_txt=False, save_img=False):
     else:  # darknet format
         _ = load_darknet_weights(model, weights)
 
+    print(model)
+
     # Second-stage classifier
     classify = False
     if classify:
@@ -65,6 +67,8 @@ def detect(save_txt=False, save_img=False):
     classes = load_classes(parse_data_cfg(opt.data)['names'])
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(classes))]
 
+    time_list = []
+
     # Run inference
     t0 = time.time()
     for path, img, im0s, vid_cap in dataset:
@@ -81,6 +85,14 @@ def detect(save_txt=False, save_img=False):
 
         # Apply NMS
         pred = non_max_suppression(pred, opt.conf_thres, opt.nms_thres)
+
+        end_time = time.time() - t
+
+        time_list.append(end_time)
+
+        print("Inference Speed: %.3fs (%.3fs)" % (end_time, (sum(time_list)/len(time_list)) ))
+
+        #print(pred)
 
         # Apply
         if classify:
@@ -112,13 +124,10 @@ def detect(save_txt=False, save_img=False):
 
                     if save_img or view_img:  # Add bbox to image
                         label = '%s %.2f' % (classes[int(cls)], conf)
-
-                        print(xyxy)
-
                         #plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
 
-            print('%sDone. (%.3fs)' % (s, time.time() - t))
+            #print('%sDone. (%.3fs)' % (s, time.time() - t))
 
             # Stream results
             if view_img:

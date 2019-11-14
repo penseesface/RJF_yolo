@@ -9,34 +9,40 @@ import time
 from utils.utils import *
 from utils.prune_utils import *
 import os
+import argparse
 
+#Parse Arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--cfg', type=str, default='cfg/yolov3-custom.cfg', help='cfg file path')
+parser.add_argument('--data', type=str, default='data/custom.data', help='*.data file path')
+parser.add_argument('--weights', type=str, default='', help='weights file for pruning')
+parser.add_argument('--percent', type=float, default=0.2, help='amount to prune')
 
-class opt():
-    model_def = "cfg/yolov3-custom.cfg"
-    data_config = "data/custom.data"
-    model = 'weights/last.pt'
+opt = parser.parse_args()
+
+print(opt)
 
 #指定GPU
 #torch.cuda.set_device(2)
-percent = 0.2
+percent = opt.percent
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = Darknet(opt.model_def).to(device)
+model = Darknet(opt.cfg).to(device)
 
-if opt.model:
-    if opt.model.endswith(".pt"):
-        model.load_state_dict(torch.load(opt.model, map_location=device)['model'])
+if opt.weights:
+    if opt.weights.endswith(".pt"):
+        model.load_state_dict(torch.load(opt.weights, map_location=device)['model'])
     else:
-        _ = load_darknet_weights(model, opt.model)
+        _ = load_darknet_weights(model, opt.weights)
         
 
-data_config = parse_data_cfg(opt.data_config)
+data = parse_data_cfg(opt.data)
 
-valid_path = data_config["valid"]
-class_names = load_classes(data_config["names"])
+valid_path = data["valid"]
+class_names = load_classes(data["names"])
 
 
-eval_model = lambda model:test(model=model,cfg=opt.model_def, data=opt.data_config)
+eval_model = lambda model:test(model=model,cfg=opt.cfg, data=opt.data)
 
 
 obtain_num_parameters = lambda model:sum([param.nelement() for param in model.parameters()])
@@ -214,10 +220,8 @@ metric_table = [
 ]
 print(AsciiTable(metric_table).table)
 
-
-
 # 生成剪枝后的cfg文件并保存模型
-pruned_cfg_name = opt.model_def.replace('/', f'/prune_{percent}_')
+pruned_cfg_name = opt.cfg.replace('/', f'/prune_{percent}_')
 
 #由于原始的compact_module_defs将anchor从字符串变为了数组，因此这里将anchors重新变为字符串
 
@@ -228,7 +232,7 @@ for item in compact_module_defs:
 pruned_cfg_file = write_cfg(pruned_cfg_name, [model.hyperparams.copy()] + compact_module_defs)
 print(f'Config file has been saved: {pruned_cfg_file}')
 
-#compact_model_name = opt.model.replace('/', f'/prune_{percent}_')
+#compact_model_name = opt.weights.replace('/', f'/prune_{percent}_')
 compact_model_name = 'weights/yolov3_normal_pruning_'+str(percent)+'percent.weights'
 
 save_weights(compact_model, path=compact_model_name)
