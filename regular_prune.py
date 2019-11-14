@@ -272,6 +272,6 @@ print(f'Config file has been saved in: {pruned_cfg_file}')
 #compact_model_name = 'weights/yolov3_hand_regular_pruning_'+str(percent)+'percent.weights'
 
 #Save Weights
-compact_model_name = 'exp/' + opt.exp_id + '/pruned_model_' + str(percent) + '.weights'
+compact_model_name = 'exp/' + opt.exp_id + '/pruned_model.weights'
 save_weights(compact_model, path=compact_model_name)
 print('Compact model has been saved in: ', compact_model_name)
