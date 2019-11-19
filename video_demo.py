@@ -56,10 +56,13 @@ def detect(save_txt=False, save_img=False):
     # Set Dataloader
     vid_path, vid_writer = None, None
     if webcam:
+        print("Running with webcam...")
         view_img = True
         torch.backends.cudnn.benchmark = True  # set True to speed up constant image size inference
-        dataset = LoadStreams(source, img_size=img_size, half=half)
+        datase
+        t = LoadStreams(source, img_size=img_size, half=half)
     else:
+        print("Running with image/image stream...")
         save_img = True
         dataset = LoadImages(source, img_size=img_size, half=half)
 
@@ -74,8 +77,12 @@ def detect(save_txt=False, save_img=False):
     for path, img, im0s, vid_cap in dataset:
         t = time.time()
 
+        print(img.shape)
+
         # Get detections
         img = torch.from_numpy(img).to(device)
+
+
         if img.ndimension() == 3:
             img = img.unsqueeze(0)
         pred = model(img)[0]

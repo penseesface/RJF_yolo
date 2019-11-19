@@ -205,12 +205,10 @@ CBLidx2mask = {idx: mask for idx, mask in zip(CBL_idx, filters_mask)}
 
 pruned_model = prune_model_keep_size(model, prune_idx, CBL_idx, CBLidx2mask)
 
-
 with torch.no_grad():
     mAP = eval_model(pruned_model)[1].mean()
 
 print('after prune_model_keep_size map is {}'.format(mAP))
-
 
 #获得原始模型的module_defs，并修改该defs中的卷积核数量
 compact_module_defs = deepcopy(model.module_defs)
@@ -255,10 +253,6 @@ metric_table = [
 ]
 
 print(AsciiTable(metric_table).table)
-
-
-# 生成剪枝后的cfg文件并保存模型
-#pruned_cfg_name = opt.cfg.replace('/', f'/prune_{percent}_')
 
 for item in compact_module_defs:
     if item['type']=='yolo':

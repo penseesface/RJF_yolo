@@ -7,8 +7,6 @@ from models import *
 from utils.datasets import *
 from utils.utils import *
 
-
-
 def test(cfg,
          data,
          weights=None,
@@ -154,8 +152,10 @@ def test(cfg,
 
     # Compute statistics
     stats = [np.concatenate(x, 0) for x in list(zip(*stats))]  # to numpy
+    
     if len(stats):
         p, r, ap, f1, ap_class = ap_per_class(*stats)
+        
         mp, mr, map, mf1 = p.mean(), r.mean(), ap.mean(), f1.mean()
         nt = np.bincount(stats[3].astype(np.int64), minlength=nc)  # number of targets per class
     else:
@@ -213,6 +213,7 @@ if __name__ == '__main__':
     parser.add_argument('--save-json', action='store_true', help='save a cocoapi-compatible JSON results file')
     parser.add_argument('--device', default='', help='device id (i.e. 0 or 0,1) or cpu')
     opt = parser.parse_args()
+
     print(opt)
 
     with torch.no_grad():

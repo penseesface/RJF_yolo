@@ -24,6 +24,57 @@ for orientation in ExifTags.TAGS.keys():
     if ExifTags.TAGS[orientation] == 'Orientation':
         break
 
+#Added code, helper functions for warp affine derived from Centernet
+
+def get_affine_transform(center,
+                         scale,
+                         rot,
+                         output_size,
+                         shift=np.array([0, 0], dtype=np.float32),
+                         inv=0):
+    if not isinstance(scale, np.ndarray) and not isinstance(scale, list):
+        scale = np.array([scale, scale], dtype=np.float32)
+
+    scale_tmp = scale
+    src_w = scale_tmp[0]
+    dst_w = output_size[0]
+    dst_h = output_size[1]
+
+    rot_rad = np.pi * rot / 180
+    src_dir = get_dir([0, src_w * -0.5], rot_rad)
+    dst_dir = np.array([0, dst_w * -0.5], np.float32)
+
+    src = np.zeros((3, 2), dtype=np.float32)
+    dst = np.zeros((3, 2), dtype=np.float32)
+    src[0, :] = center + scale_tmp * shift
+    src[1, :] = center + src_dir + scale_tmp * shift
+    dst[0, :] = [dst_w * 0.5, dst_h * 0.5]
+    dst[1, :] = np.array([dst_w * 0.5, dst_h * 0.5], np.float32) + dst_dir
+
+    src[2:, :] = get_3rd_point(src[0, :], src[1, :])
+    dst[2:, :] = get_3rd_point(dst[0, :], dst[1, :])
+
+    if inv:
+        trans = cv2.getAffineTransform(np.float32(dst), np.float32(src))
+    else:
+        trans = cv2.getAffineTransform(np.float32(src), np.float32(dst))
+
+    return trans
+
+def get_dir(src_point, rot_rad):
+    sn, cs = np.sin(rot_rad), np.cos(rot_rad)
+
+    src_result = [0, 0]
+    src_result[0] = src_point[0] * cs - src_point[1] * sn
+    src_result[1] = src_point[0] * sn + src_point[1] * cs
+
+    return src_result
+
+def get_3rd_point(a, b):
+    direct = a - b
+    return b + np.array([-direct[1], direct[0]], dtype=np.float32)
+
+#End of added code, helper functions for warp affine derived from Centernet
 
 def exif_size(img):
     # Returns exif-corrected PIL size
@@ -51,6 +102,8 @@ class LoadImages:  # for inference
 
         images = [x for x in files if os.path.splitext(x)[-1].lower() in img_formats]
         videos = [x for x in files if os.path.splitext(x)[-1].lower() in vid_formats]
+        
+
         nI, nV = len(images), len(videos)
 
         self.img_size = img_size
@@ -97,6 +150,32 @@ class LoadImages:  # for inference
             img0 = cv2.imread(path)  # BGR
             assert img0 is not None, 'Image Not Found ' + path
             print('image %g/%g %s: ' % (self.count, self.nF, path), end='')
+
+
+        #Added code to perform warp affine to 640 X 384
+        '''
+        #cv2.imshow("Before padding: ", img0)
+        #cv2.waitKey(0)
+
+        inp_width = 640
+        inp_height = 384
+
+        c = np.array([1920 / 2., 1080/ 2.], dtype=np.float32)
+        s = 1920
+
+        trans_input = get_affine_transform(c, s, 0, [inp_width, inp_height])
+
+        inp_image = cv2.warpAffine(img0, trans_input, (inp_width, inp_height), flags=cv2.INTER_LINEAR)
+
+        #cv2.imshow('Warp Affine: ', inp_image)
+
+        #cv2.waitKey(0)
+
+        #img = letterbox(inp_image, new_shape=self.img_size)[0]
+
+        img = inp_image
+        '''
+        #End of added warp affine
 
         # Padded resize
         img = letterbox(img0, new_shape=self.img_size)[0]
@@ -640,9 +719,11 @@ def letterbox(img, new_shape=416, color=(128, 128, 128), mode='auto', interp=cv2
 
     if shape[::-1] != new_unpad:  # resize
         img = cv2.resize(img, new_unpad, interpolation=interp)  # INTER_AREA is better, INTER_LINEAR is faster
+    
     top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
     left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
     img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # add border
+    
     return img, ratio, dw, dh
 
 
