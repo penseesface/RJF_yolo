@@ -355,36 +355,34 @@ def train():
         if fitness < best_fitness:
             best_fitness = fitness
 
-        # Save training results
-        save = (not opt.nosave) or (final_epoch and not opt.evolve) or opt.prebias
-        if save:
-            with open(exp_dir + "/results.txt", 'r') as f:
-                # Create checkpoint
-                chkpt = {'epoch': epoch,
-                         'best_fitness': best_fitness,
-                         'training_results': f.read(),
-                         'model': model.module.state_dict() if type(
-                             model) is nn.parallel.DistributedDataParallel else model.state_dict(),
-                         'optimizer': None if final_epoch else optimizer.state_dict()}
+        #Save Result and model
+        with open(exp_dir + "/results.txt", 'r') as f:
+            # Create checkpoint
+            chkpt = {'epoch': epoch,
+                     'best_fitness': best_fitness,
+                     'training_results': f.read(),
+                     'model': model.module.state_dict() if type(
+                         model) is nn.parallel.DistributedDataParallel else model.state_dict(),
+                     'optimizer': None if final_epoch else optimizer.state_dict()}
 
-            # Save last checkpoint
-            #torch.save(chkpt, last)
-            torch.save(chkpt, exp_dir + "/model_last.pt")
-            if opt.bucket and not opt.prebias:
-                os.system('gsutil cp %s gs://%s' % (last, opt.bucket))  # upload to bucket
+        # Save last checkpoint
+        #torch.save(chkpt, last)
+        torch.save(chkpt, exp_dir + "/model_last.pt")
+        if opt.bucket and not opt.prebias:
+            os.system('gsutil cp %s gs://%s' % (last, opt.bucket))  # upload to bucket
 
-            # Save best checkpoint
-            if best_fitness == fitness:
-                #torch.save(chkpt, best)
-                torch.save(chkpt, exp_dir + "/model_best.pt")
+        # Save best checkpoint
+        if best_fitness == fitness:
+            #torch.save(chkpt, best)
+            torch.save(chkpt, exp_dir + "/model_best.pt")
 
-            # Save backup every 50 epochs (optional)
-            if epoch > 0 and epoch % 50 == 0:
-                #torch.save(chkpt, wdir + 'backup%g.pt' % epoch)
-                torch.save(chkpt, exp_dir + "/model_%g.pt" % epoch)
+        # Save backup every 50 epochs (optional)
+        if epoch > 0 and epoch % 50 == 0:
+            #torch.save(chkpt, wdir + 'backup%g.pt' % epoch)
+            torch.save(chkpt, exp_dir + "/model_%g.pt" % epoch)
 
-            # Delete checkpoint
-            del chkpt
+        # Delete checkpoint
+        del chkpt
 
         # end epoch ----------------------------------------------------------------------------------------------------
 
