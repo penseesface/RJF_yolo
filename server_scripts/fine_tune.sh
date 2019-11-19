@@ -1,11 +1,11 @@
 cd ..
 
 python train.py \
---exp_id wuxiv2_finetuned_darknet53_percent \
---epoch 50 \
+--exp_id wuxiv2_pruned0.7_darknet53_finetuned \
+--epoch 100 \
 --accumulate 1 \
 --batch-size 80 \
 --data data/custom.data \
---weights weights/yolov3_hand_regular_pruning_0.8percent.weights \
---cfg cfg/prune_0.8_yolov3-custom.cfg \
+--weights exp/wuxiv2_darknet53_pruned0.7/pruned_model.weights \
+--cfg exp/wuxiv2_darknet53_pruned0.7/pruned_model_0.7.cfg \
 --prune 0
