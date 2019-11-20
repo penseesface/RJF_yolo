@@ -43,6 +43,11 @@ def test(cfg,
         device = next(model.parameters()).device  # get model device
         verbose = False
 
+    obtain_num_parameters = lambda model:sum([param.nelement() for param in model.parameters()])
+    origin_nparameters = obtain_num_parameters(model)
+
+    print("Number of Params: ", origin_nparameters)
+
     # Configure run
     data = parse_data_cfg(data)
     nc = int(data['classes'])  # number of classes

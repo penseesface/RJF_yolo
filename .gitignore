@@ -12,3 +12,4 @@ utils/__pycache__/
 
 *.pt
 *.weights
+*.pyc

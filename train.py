@@ -374,6 +374,7 @@ def train():
         # Save best checkpoint
         if best_fitness == fitness:
             #torch.save(chkpt, best)
+            print("New best model found, updating model_best.pt...")
             torch.save(chkpt, exp_dir + "/model_best.pt")
 
         # Save backup every 50 epochs (optional)
