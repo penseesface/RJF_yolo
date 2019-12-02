@@ -1,12 +1,14 @@
 cd ..
 
 python train.py \
---exp_id mergev3_darknet53_baseline \
+--exp_id mergev3_darknet53_sr_s0.001_baseline_scratch \
 --accumulate 1 \
 --batch-size 150 \
 --data data/merge.data \
---weights exp/mergev3_darknet53_baseline/model_last.pt \
 --cfg cfg/yolov3-custom.cfg \
 --test_interval 5 \
 --evolve \
---device 0,1,2,3
+-sr \
+--s 0.001 \
+--prune 0 \
+--device 4,5,6,7
