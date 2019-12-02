@@ -2,11 +2,11 @@ cd ..
 
 python train.py \
 --exp_id mergev3_darknet53_sr_s0.001_baseline \
---epochs 200 \
+--epoch 300 \
 --accumulate 1 \
---batch-size 80 \
+--batch-size 150 \
 --data data/merge.data \
---weights exp/mergev3_darknet53_baseline/model_last.pt \
+--weights exp/mergev3_darknet53_sr_s0.001_baseline/model_last.pt \
 --cfg cfg/yolov3-custom.cfg \
 --test_interval 5 \
 --evolve \
