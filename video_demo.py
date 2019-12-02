@@ -6,7 +6,7 @@ from utils.datasets import *
 from utils.utils import *
 
 
-def detect(save_txt=False, save_img=False):
+def detect(save_txt=False, save_img=False, custom_preprocess = False):
     img_size = (320, 192) if ONNX_EXPORT else opt.img_size  # (320, 192) or (416, 256) or (608, 352) for (height, width)
     out, source, weights, half, view_img = opt.output, opt.source, opt.weights, opt.half, opt.view_img
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http') or source.endswith('.txt')
@@ -27,7 +27,7 @@ def detect(save_txt=False, save_img=False):
     else:  # darknet format
         _ = load_darknet_weights(model, weights)
 
-    print(model)
+    #print(model)
 
     # Second-stage classifier
     classify = False
@@ -64,28 +64,34 @@ def detect(save_txt=False, save_img=False):
     else:
         print("Running with image/image stream...")
         save_img = True
-        dataset = LoadImages(source, img_size=img_size, half=half)
+        dataset = LoadImages(source, img_size=img_size, half=half, custom_preprocess = custom_preprocess)
 
     # Get classes and colors
     classes = load_classes(parse_data_cfg(opt.data)['names'])
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(classes))]
 
     time_list = []
+    pre_list = []
+    post_list = []
+    inference_list = []
 
     # Run inference
     t0 = time.time()
     for path, img, im0s, vid_cap in dataset:
-        t = time.time()
-
-        print(img.shape)
+        t1 = time.time()
+        #print(img.shape)
 
         # Get detections
         img = torch.from_numpy(img).to(device)
 
-
         if img.ndimension() == 3:
             img = img.unsqueeze(0)
+
+        t2 = time.time()
+
         pred = model(img)[0]
+
+        t3 = time.time()
 
         if opt.half:
             pred = pred.float()
@@ -93,11 +99,25 @@ def detect(save_txt=False, save_img=False):
         # Apply NMS
         pred = non_max_suppression(pred, opt.conf_thres, opt.nms_thres)
 
-        end_time = time.time() - t
+        t4 = time.time()
+
+        preprocess_time = t2 - t1
+
+        inference_time = t3 - t2
+
+        postprocess_time = t4 - t3
+
+        end_time = t4 - t1
 
         time_list.append(end_time)
+        pre_list.append(preprocess_time)
+        post_list.append(postprocess_time)
+        inference_list.append(inference_time)
 
-        print("Inference Speed: %.3fs (%.3fs)" % (end_time, (sum(time_list)/len(time_list)) ))
+        print("Total Speed: %.3fs (%.3fs)" % (end_time, (sum(time_list)/len(time_list)) ))
+        print("Pre-Process Speed: %.3fs (%.3fs)" % (preprocess_time, (sum(pre_list)/len(pre_list)) ))
+        print("Inference Speed: %.3fs (%.3fs)" % (inference_time, (sum(inference_list)/len(inference_list)) ))
+        print("Post-Process Speed: %.3fs (%.3fs)" % (postprocess_time, (sum(post_list)/len(post_list)) ))
 
         #print(pred)
 
@@ -180,8 +200,16 @@ if __name__ == '__main__':
     parser.add_argument('--half', action='store_true', help='half precision FP16 inference')
     parser.add_argument('--device', default='', help='device id (i.e. 0 or 0,1) or cpu')
     parser.add_argument('--view-img', action='store_true', help='display results')
+
+    #Added args
+    parser.add_argument('--custom_preprocess', action='store_true', help='Use custom size (640 X 384')
+
     opt = parser.parse_args()
     print(opt)
 
     with torch.no_grad():
-        detect()
+        if opt.custom_preprocess:
+            print("Running inference on size: 640 X 384")
+            detect(custom_preprocess = True)
+        else:
+            detect()

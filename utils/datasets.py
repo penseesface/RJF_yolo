@@ -92,7 +92,7 @@ def exif_size(img):
 
 
 class LoadImages:  # for inference
-    def __init__(self, path, img_size=416, half=False):
+    def __init__(self, path, img_size=416, half=False, custom_preprocess = False):
         path = str(Path(path))  # os-agnostic
         files = []
         if os.path.isdir(path):
@@ -112,6 +112,12 @@ class LoadImages:  # for inference
         self.video_flag = [False] * nI + [True] * nV
         self.mode = 'images'
         self.half = half  # half precision fp16 images
+
+        #Added for custom preprocess
+        self.custom_preprocess = custom_preprocess
+
+        #End
+
         if any(videos):
             self.new_video(videos[0])  # new video
         else:
@@ -153,32 +159,36 @@ class LoadImages:  # for inference
 
 
         #Added code to perform warp affine to 640 X 384
-        '''
+        
         #cv2.imshow("Before padding: ", img0)
         #cv2.waitKey(0)
 
-        inp_width = 640
-        inp_height = 384
+        if self.custom_preprocess:
 
-        c = np.array([1920 / 2., 1080/ 2.], dtype=np.float32)
-        s = 1920
+            inp_width = 640
+            inp_height = 384
 
-        trans_input = get_affine_transform(c, s, 0, [inp_width, inp_height])
+            c = np.array([1920 / 2., 1080/ 2.], dtype=np.float32)
+            s = 1920
 
-        inp_image = cv2.warpAffine(img0, trans_input, (inp_width, inp_height), flags=cv2.INTER_LINEAR)
+            trans_input = get_affine_transform(c, s, 0, [inp_width, inp_height])
 
-        #cv2.imshow('Warp Affine: ', inp_image)
+            inp_image = cv2.warpAffine(img0, trans_input, (inp_width, inp_height), flags=cv2.INTER_LINEAR)
 
-        #cv2.waitKey(0)
+            #cv2.imshow('Warp Affine: ', inp_image)
 
-        #img = letterbox(inp_image, new_shape=self.img_size)[0]
+            #cv2.waitKey(0)
 
-        img = inp_image
-        '''
+            #img = letterbox(inp_image, new_shape=self.img_size)[0]
+
+            img = inp_image
+
+        else:
+            # Padded resize
+            img = letterbox(img0, new_shape=self.img_size)[0]
+        
         #End of added warp affine
 
-        # Padded resize
-        img = letterbox(img0, new_shape=self.img_size)[0]
 
         # Normalize RGB
         img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB
@@ -501,10 +511,50 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
 
             # Letterbox
             h, w, _ = img.shape
+
+
+            #Added code to perform warp affine to 640 X 384
+            '''
+            #cv2.imshow("Before padding: ", img0)
+            #cv2.waitKey(0)
+
+            inp_width = 640
+            inp_height = 384
+
+            c = np.array([1920 / 2., 1080/ 2.], dtype=np.float32)
+            s = 1920
+
+            trans_input = get_affine_transform(c, s, 0, [inp_width, inp_height])
+
+            inp_image = cv2.warpAffine(img0, trans_input, (inp_width, inp_height), flags=cv2.INTER_LINEAR)
+
+            #cv2.imshow('Warp Affine: ', inp_image)
+
+            #cv2.waitKey(0)
+
+            #img = letterbox(inp_image, new_shape=self.img_size)[0]
+
+            img = inp_image
+            '''
+            #End of added warp affine
+
             if self.rect:
                 img, ratio, padw, padh = letterbox(img, self.batch_shapes[self.batch[index]], mode='rect')
+                #Hard coded values
+                #img, ratio, padw, padh = letterbox(img, np.array([384, 640]), mode='rect')
             else:
                 img, ratio, padw, padh = letterbox(img, self.img_size, mode='square')
+
+            '''
+            print("Ratio: ", ratio)
+            print("padw: ", padw)
+            print('padh: ', padh)
+
+            cv2.imshow('output', img)
+
+            if cv2.waitKey(0) == ord('q'):
+                exit()
+            '''
 
             # Load labels
             labels = []
