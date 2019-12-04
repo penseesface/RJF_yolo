@@ -12,5 +12,9 @@ utils/__pycache__/
 
 *.pt
 *.weights
+
+*.pot
 *.pyc
-utils/__pycache__/datasets.cpython-37.pyc
+*/*/*/__pycache__/
+*/*/__pycache__/
+*/__pycache__/
